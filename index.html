@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Snake Retro TV</title>
+
+<link rel="apple-touch-icon" sizes="1024x1024" href="icon-1024.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Snake Retro TV">
+
+<style>
+body{
+  margin:0;min-height:100vh;display:flex;justify-content:center;align-items:center;
+  background:#1a1a1a;font-family:"Courier New", monospace;color:#d1fae5;
+}
+.tv{
+  background:#3b2f2f;border-radius:30px;padding:25px;
+  box-shadow:inset 0 0 0 6px #5c4033,0 25px 50px rgba(0,0,0,.8);
+  width:420px;
+}
+.panel{display:flex;justify-content:space-between;margin-bottom:10px;font-size:14px;}
+.screen-wrapper{background:#111;border-radius:20px;padding:16px;position:relative;}
+canvas{display:block;margin:auto;background:#020617;border-radius:14px;}
+.controls{
+  margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);
+  grid-template-rows:repeat(3,1fr);gap:10px;justify-items:center;
+}
+.btn{
+  width:65px;height:65px;border-radius:50%;
+  background:radial-gradient(circle,#555,#222);
+  border:2px solid #111;color:#d1fae5;font-size:22px;
+}
+.btn:active{transform:scale(.95);}
+.up{grid-column:2;grid-row:1}
+.left{grid-column:1;grid-row:2}
+.right{grid-column:3;grid-row:2}
+.down{grid-column:2;grid-row:3}
+
+.overlay{
+  position:absolute;inset:0;background:rgba(0,0,0,.85);
+  display:flex;align-items:center;justify-content:center;
+  text-align:center;border-radius:20px;
+}
+.hidden{display:none}
+.overlay button{
+  margin-top:10px;padding:8px 18px;border:none;
+  border-radius:12px;background:#22c55e;font-family:inherit;
+}
+</style>
+</head>
+<body>
+
+<div class="tv">
+  <div class="panel">
+    <div>PUNTOS: <span id="score">0</span></div>
+    <div>RECORD: <span id="best">0</span></div>
+  </div>
+
+  <div class="screen-wrapper">
+    <canvas id="game" width="384" height="384"></canvas>
+
+    <div id="tapStart" class="overlay">
+      <div>
+        <p>📺 TOCA PARA INICIAR</p>
+        <button onclick="userStart()">JUGAR</button>
+      </div>
+    </div>
+
+    <div id="gameOver" class="overlay hidden">
+      <div>
+        <p>📺 SIN SEÑAL</p>
+        <p>PUNTAJE: <span id="finalScore"></span></p>
+        <button onclick="start()">REINTENTAR</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn up" onclick="setDir(0,-1)">▲</button>
+    <button class="btn left" onclick="setDir(-1,0)">◀</button>
+    <button class="btn right" onclick="setDir(1,0)">▶</button>
+    <button class="btn down" onclick="setDir(0,1)">▼</button>
+  </div>
+</div>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const size=16;
+const cols=canvas.width/size;
+let snake,food,dx,dy,score,loop;
+let best=localStorage.getItem("snakeBest")||0;
+document.getElementById("best").textContent=best;
+let started=false;
+
+function userStart(){
+  if(started) return;
+  started=true;
+  document.getElementById("tapStart").classList.add("hidden");
+  start();
+}
+
+function start(){
+  snake=[{x:12,y:12}];
+  dx=1;dy=0;score=0;
+  food=randomFood();
+  document.getElementById("score").textContent=score;
+  document.getElementById("gameOver").classList.add("hidden");
+  clearInterval(loop);
+  loop=setInterval(update,220);
+  draw();
+}
+
+function randomFood(){
+  let p;
+  do{
+    p={x:Math.floor(Math.random()*cols),y:Math.floor(Math.random()*cols)};
+  }while(snake.some(s=>s.x===p.x&&s.y===p.y));
+  return p;
+}
+
+function setDir(x,y){
+  if(x!==-dx&&y!==-dy){dx=x;dy=y;}
+}
+
+function update(){
+  const h={x:snake[0].x+dx,y:snake[0].y+dy};
+  if(h.x<0||h.y<0||h.x>=cols||h.y>=cols||snake.some(s=>s.x===h.x&&s.y===h.y)){
+    endGame();return;
+  }
+  snake.unshift(h);
+  if(h.x===food.x&&h.y===food.y){
+    score++;document.getElementById("score").textContent=score;
+    food=randomFood();
+  }else snake.pop();
+  draw();
+}
+
+function draw(){
+  ctx.fillStyle="#020617";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="#f97316";
+  ctx.fillRect(food.x*size,food.y*size,size,size);
+  ctx.fillStyle="#22c55e";
+  snake.forEach(s=>ctx.fillRect(s.x*size,s.y*size,size-1,size-1));
+}
+
+function endGame(){
+  clearInterval(loop);
+  document.getElementById("finalScore").textContent=score;
+  document.getElementById("gameOver").classList.remove("hidden");
+  if(score>best){
+    best=score;
+    localStorage.setItem("snakeBest",best);
+    document.getElementById("best").textContent=best;
+  }
+}
+</script>
+</body>
+</html>
